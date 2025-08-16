@@ -63,12 +63,6 @@ fn main() {
 // It is not required for an endpoint to be exposed. This could lead to unexpected 
 // API endpoints. 
 
-// READ
-@['/app/tasks'; get]
-pub fn (app &App) tasks(mut ctx Context) veb.Result {
-	return ctx.html(generate_tasklist(app))
-}
-
 // CREATE
 @['/app/new_task'; post]
 pub fn (mut app App) new_task(mut ctx Context) veb.Result {
@@ -94,6 +88,25 @@ pub fn (mut app App) new_task(mut ctx Context) veb.Result {
 	return ctx.html(generate_overdiv(app))
 }
 
+// READ
+@['/app/tasks'; get]
+pub fn (app &App) tasks(mut ctx Context) veb.Result {
+	return ctx.html(generate_tasklist(app))
+}
+
+// UPDATE
+@['/app/flip/:id'; patch]
+pub fn (mut app App) flip(mut ctx Context, id int) veb.Result {
+	
+	app.tasks[id].task_done = !app.tasks[id].task_done
+
+	sql app.db {
+		update Task set task_done = app.tasks[id].task_done where task_id == id
+	} or { panic(err) }
+
+	return ctx.html(generate_tasklist(app))
+}
+
 // DELETE
 @['/app/delete_all'; delete]
 pub fn (mut app App) delete_all(mut ctx Context) veb.Result {
@@ -104,8 +117,6 @@ pub fn (mut app App) delete_all(mut ctx Context) veb.Result {
 		sql app.db {
 			update Task set task_deleted = true where task_id == task.task_id
 		} or { panic(err) }
-
-		println('deleting task: ${task}')
 	}
 
 	return ctx.html(generate_overdiv(app))
@@ -144,18 +155,33 @@ fn generate_tasklist (app &App) string {
 			checked = 'checked'
 		}
 		ret = ret + '<li data-id="${task.task_id}">
-    		<input type="checkbox" name="completed" id="${task.task_id}" ${checked}>
+    		<input
+				type="checkbox" 
+				name="completed" 
+				id="${task.task_id}"
+				${checked}
+				hx-patch="/app/flip/${task.task_id}" 
+				hx-target="#tasks" 
+				hx-swap="innerHTML"
+			>
     		<label for="${task.task_id}">${task.task_text}</label>
     		<button 
-			class="delete" 
-			hx-delete="/app/delete/${task.task_id}" 
-			hx-confirm="Are you sure you want to delete?"
-			hx-target="#overdiv"
-			hx-swap="outerHTML">
-			Delete
+				class="delete" 
+				hx-delete="/app/delete/${task.task_id}" 
+				hx-confirm="Are you sure you want to delete?"
+				hx-target="#overdiv"
+				hx-swap="outerHTML"
+			>
+				Delete
 			</button>
 			</li>'
 	}
+
+	// Triggers if all tasks were marked as deleted
+	if ret == '' {
+		ret = '<p>No Tasks</p>'
+	}
+
 	return ret
 }
 
