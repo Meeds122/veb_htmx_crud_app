@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simple To-Do App</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="htmx.min.js"></script>
+</head>
+<body>
+    <div class="todo-container" id="overdiv">
+        <h1>To-Do List</h1>
+        <form hx-post="/app/new_task" hx-target="#overdiv" hx-swap="outerHTML">
+            <input type="text" name="task" placeholder="New task..." required>
+            <button type="submit">Add</button>
+        </form>
+        <ul id="tasks" hx-get="/app/tasks" hx-trigger="load" hx-trigger="every 1s">
+            Loading...
+        </ul>
+    </div>
+</body>
+</html>
+
+<!-- Task Template -->
+<!--
+<li data-id="1">
+    <input type="checkbox" name="completed" id="task1">
+    <label for="task1">Buy groceries</label>
+    <button class="delete">Delete</button>
+</li>
+ -->
