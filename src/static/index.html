@@ -14,7 +14,7 @@
             <input type="text" name="task" placeholder="New task..." required>
             <button type="submit">Add</button>
         </form>
-        <ul id="tasks" hx-get="/app/tasks" hx-trigger="load" hx-trigger="every 1s">
+        <ul id="tasks" hx-get="/app/tasks" hx-trigger="load">
             Loading...
         </ul>
     </div>
