@@ -1,7 +1,7 @@
 module main
 
 import veb
-import db.sqlite
+import sqlite // V's SQLite wrapper. $ v install sqlite
 
 pub struct Task {
 pub:

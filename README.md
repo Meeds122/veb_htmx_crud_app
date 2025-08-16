@@ -22,10 +22,9 @@ This repository contains a simple CRUD (Create, Read, Update, Delete) applicatio
    ```
 
 2. **Install dependencies**:
-   Ensure you have the V programming language installed. Follow the [official V installation guide](https://vlang.io/) if needed.
-   Install the SQLite dependency. See vlib's SQLite documentation for other operating systems. [vlib - sqlite](https://github.com/vlang/v/tree/master/vlib/db/sqlite)
+   Ensure you have the V programming language installed. Follow the [official V installation guide](https://vlang.io/). Install the V language SQLite package: 
     ```bash
-   apt install -y libsqlite3-dev
+   v install sqlite
    ```
 
 3. **Run the application**:
