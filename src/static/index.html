@@ -17,15 +17,14 @@
         <ul id="tasks" hx-get="/app/tasks" hx-trigger="load">
             Loading...
         </ul>
+        <button 
+			class="delete" 
+			hx-delete="/app/delete_all" 
+			hx-confirm="Are you sure you want to delete ALL tasks?"
+			hx-target="#overdiv"
+			hx-swap="outerHTML">
+			Delete All
+		</button>
     </div>
 </body>
 </html>
-
-<!-- Task Template -->
-<!--
-<li data-id="1">
-    <input type="checkbox" name="completed" id="task1">
-    <label for="task1">Buy groceries</label>
-    <button class="delete">Delete</button>
-</li>
- -->

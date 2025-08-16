@@ -9,6 +9,7 @@ pub:
 pub mut:
 	task_text	string
 	task_done	bool
+	task_deleted bool
 }
 
 // Context is not shared between requests. It manages the request session
@@ -62,11 +63,13 @@ fn main() {
 // It is not required for an endpoint to be exposed. This could lead to unexpected 
 // API endpoints. 
 
+// READ
 @['/app/tasks'; get]
 pub fn (app &App) tasks(mut ctx Context) veb.Result {
 	return ctx.html(generate_tasklist(app))
 }
 
+// CREATE
 @['/app/new_task'; post]
 pub fn (mut app App) new_task(mut ctx Context) veb.Result {
 	// request method is POST
@@ -74,6 +77,7 @@ pub fn (mut app App) new_task(mut ctx Context) veb.Result {
 		task_id: app.tasks.len
 		task_text: ctx.form['task']
 		task_done: false
+		task_deleted: false
 	}
 
 	// Appending new_task to the in-memory array of tasks
@@ -87,18 +91,36 @@ pub fn (mut app App) new_task(mut ctx Context) veb.Result {
 	} or { panic(err) }
 
 	// Generating the HTML used by HTMX on the frontend
-	ret := '<div class="todo-container" id="overdiv">
-        <h1>To-Do List</h1>
-        <form hx-post="/app/new_task" hx-target="#overdiv" hx-swap="outerHTML">
-            <input type="text" name="task" placeholder="New task..." required>
-            <button type="submit">Add</button>
-        </form>
-        <ul id="tasks" hx-get="/app/tasks" hx-trigger="load">
-            ${generate_tasklist(app)}
-        </ul>
-    </div>'
+	return ctx.html(generate_overdiv(app))
+}
 
-	return ctx.html(ret)
+// DELETE
+@['/app/delete_all'; delete]
+pub fn (mut app App) delete_all(mut ctx Context) veb.Result {
+	
+	for task in app.tasks {
+		app.tasks[task.task_id].task_deleted = true
+
+		sql app.db {
+			update Task set task_deleted = true where task_id == task.task_id
+		} or { panic(err) }
+
+		println('deleting task: ${task}')
+	}
+
+	return ctx.html(generate_overdiv(app))
+}
+
+@['/app/delete/:id'; delete]
+pub fn (mut app App) delete_task(mut ctx Context, id int) veb.Result {
+	
+	app.tasks[id].task_deleted = true
+
+	sql app.db {
+		update Task set task_deleted = true where task_id == id
+	} or { panic(err) }
+
+	return ctx.html(generate_overdiv(app))
 }
 
 // ---------------
@@ -114,6 +136,9 @@ fn generate_tasklist (app &App) string {
 
 	mut ret := ''
 	for task in app.tasks {
+		if task.task_deleted {
+			continue // Abort early if 'deleted'. Not a great pattern if worried about regulated data. 
+		}
 		mut checked := ''
 		if task.task_done {
 			checked = 'checked'
@@ -121,9 +146,37 @@ fn generate_tasklist (app &App) string {
 		ret = ret + '<li data-id="${task.task_id}">
     		<input type="checkbox" name="completed" id="${task.task_id}" ${checked}>
     		<label for="${task.task_id}">${task.task_text}</label>
-    		<button class="delete">Delete</button>
+    		<button 
+			class="delete" 
+			hx-delete="/app/delete/${task.task_id}" 
+			hx-confirm="Are you sure you want to delete?"
+			hx-target="#overdiv"
+			hx-swap="outerHTML">
+			Delete
+			</button>
 			</li>'
 	}
 	return ret
 }
 
+fn generate_overdiv (app &App) string {
+	ret := '<div class="todo-container" id="overdiv">
+        <h1>To-Do List</h1>
+        <form hx-post="/app/new_task" hx-target="#overdiv" hx-swap="outerHTML">
+            <input type="text" name="task" placeholder="New task..." required>
+            <button type="submit">Add</button>
+        </form>
+        <ul id="tasks" hx-get="/app/tasks" hx-trigger="load">
+            ${generate_tasklist(app)}
+        </ul>
+		<button 
+			class="delete" 
+			hx-delete="/app/delete_all" 
+			hx-confirm="Are you sure you want to delete ALL tasks?"
+			hx-target="#overdiv"
+			hx-swap="outerHTML">
+			Delete All
+		</button>
+    </div>'
+	return ret
+}
